@@ -1,0 +1,18 @@
+class a {
+	int x(int fifty) {
+		a y;
+		int a;
+		y= null;
+		fifty = 5;
+		if (a)
+		{
+			int b;
+			if (b)
+			{
+				int c;
+				int d;
+				c++;
+			}
+		}
+	}
+}

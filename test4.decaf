@@ -1,0 +1,17 @@
+class IntList{
+    int value;
+    IntList next;
+
+    public IntList() {
+    }
+
+    public IntList insert(int v) {
+        IntList new_element;
+
+        new_element = IntList.create_list(v);
+
+        return new_element;
+    }
+
+
+}
