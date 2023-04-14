@@ -322,32 +322,32 @@ def p_return_val(p):
 
 def p_literal_int_const(p):
     'literal : INT_CONST'
-    p[0] = ConstantExpr("Integer", int(p[1]), p.lineno(1), p.lineno(1))
+    p[0] = ConstantExpr("Integer", int(p[1]), p.lineno(1), p.lineno(1), "int")
     pass
 
 def p_literal_float_const(p):
     'literal : FLOAT_CONST'
-    p[0] = ConstantExpr("Float", float(p[1]), p.lineno(1), p.lineno(1))
+    p[0] = ConstantExpr("Float", float(p[1]), p.lineno(1), p.lineno(1), "float")
     pass
 
 def p_literal_string_const(p):
     'literal : STRING_CONST'
-    p[0] = ConstantExpr("String", str(p[1]), p.lineno(1), p.lineno(1))
+    p[0] = ConstantExpr("String", str(p[1]), p.lineno(1), p.lineno(1), "string")
     pass
 
 def p_literal_null(p):
     'literal : NULL'
-    p[0] = ConstantExpr("Null", None, p.lineno(1), p.lineno(1))
+    p[0] = ConstantExpr("Null", None, p.lineno(1), p.lineno(1), "null")
     pass
 
 def p_literal_true(p):
     'literal : TRUE'
-    p[0] = ConstantExpr("True", None, p.lineno(1), p.lineno(1))
+    p[0] = ConstantExpr("True", None, p.lineno(1), p.lineno(1), "boolean")
     pass
 
 def p_literal_false(p):
     'literal : FALSE'
-    p[0] = ConstantExpr("False", None, p.lineno(1), p.lineno(1))
+    p[0] = ConstantExpr("False", None, p.lineno(1), p.lineno(1), "boolean")
     pass
 
 # def p_primary(p):
