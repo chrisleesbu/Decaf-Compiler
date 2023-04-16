@@ -6,6 +6,8 @@
 # Name: Christopher Lee
 # NetID: lee111
 # SBUID: 113378397
+from decaf_typecheck import * 
+
 class_record = dict()
 field_ids = {1}
 
@@ -99,7 +101,16 @@ class Class():
             s += str(method)
             
         return s
-
+    
+    def isSubclass(self, otherClass):
+        if (self.name == otherClass.name):
+            return True
+        elif (self.super_class != None):
+            if (self.super_class != otherClass): 
+                return self.super_class.isSubclass(otherClass)
+            else:
+                return True
+        return False
     
 class ClassBodyDeclList():
     def __init__(self, curr, n):
@@ -133,12 +144,20 @@ class VarDecl():
         
 
 class Type():
-    def __init__(self, type) -> None:
+    def __init__(self, type, isLiteral=False) -> None:
         self.type = type
+        self.category = None
+
+        if (self.type in ["int", "float", "boolean", "string", "void", "error", "null"]):
+            self.category = "elementary"
+        elif (isLiteral):
+            self.category = "classLiteral"
+        else:
+            self.category = "user"
+
     def __str__(self):
         return f'{self.type}'
     
-
 class Variables():
     def __init__(self, current = None, n = None) -> None:
         self.current = current
@@ -317,6 +336,7 @@ class IfStmt():
         self.elseStmt = elseStmt
         self.lineStart = lineStart
         self.lineEnd = lineEnd
+        self.typeCorrect = None
 
     def __str__(self):
         s = ""
@@ -339,6 +359,7 @@ class WhileStmt():
         self.stmt = stmt
         self.lineStart = lineStart
         self.lineEnd = lineEnd
+        self.typeCorrect = None
 
     def __str__(self):
         s = "While( " + str(self.expr) + ", " + str(self.stmt) + " )" if str(self.stmt) else "While( " + str(self.expr) + " )"
@@ -352,6 +373,7 @@ class ForStmt():
         self.stmt = stmt
         self.lineStart = lineStart
         self.lineEnd = lineEnd
+        self.typeCorrect = None
 
     def __str__(self):
         s = "For( " + str(self.initializerExpr) + ", " + str(self.loopExpr) + ", " + str(self.updateExpr) + ", " + str(self.stmt) + " )"
@@ -362,7 +384,8 @@ class ReturnStmt():
         self.returnValue = returnValue
         self.lineStart = lineStart
         self.lineEnd = lineEnd 
-    
+        self.typeCorrect = None
+
     def __str__(self):
         s = "Return( " + str(self.returnValue) + " )"
         return s
@@ -373,6 +396,7 @@ class ExprStmt():
         self.expr = expr
         self.lineStart = lineStart
         self.lineEnd = lineEnd   
+        self.typeCorrect = None
 
     def __str__(self):
         s = "Expr( " + str(self.expr) + " )"
@@ -384,6 +408,7 @@ class BlockStmt():
         self.lineStart = lineStart
         self.lineEnd = lineEnd
         self.var_decls = []
+        self.typeCorrect = None
         for stmt in self.stmts:
             if isinstance(stmt, VarDecl):
                 self.var_decls.append(stmt)
@@ -447,10 +472,7 @@ class ConstantExpr():
         else:
             s = "Constant(" + str(self.version) + "-constant(" + str(self.info) + ")" + ")"
         return s
-    
-    def getType(self):
-        return self.type
-    
+
 class VarExpr():
     def __init__(self, idVar, lineStart, lineEnd, unique_id) -> None:
         self.idVar = idVar
@@ -462,10 +484,6 @@ class VarExpr():
     def __str__(self):
         s = "Variable(" + str(self.unique_id) + ")"
         return s
-    
-    def getType(self):
-        #TODO figure out the type of the var
-        pass
 
 class UnaryExpr():
     def __init__(self, operand, unary, lineStart, lineEnd) -> None:
@@ -482,25 +500,6 @@ class UnaryExpr():
         else:
             s = "Unary(" + str(self.unary) + str(self.operand) + ")"   
         return s
-    
-    def getType(self):
-        if (self.type == None):
-            if (self.unary == '!'):
-                if (self.operand.getType() == "boolean"):
-                    self.type = Type("boolean")
-                else:
-                    print("Error: Unary type error")
-                    self.type = Type("error")
-            elif(self.unary == "-"): 
-                if (self.unary == '-'):
-                    if (self.operand.getType() == "int"):
-                        self.type = Type("int")
-                    elif (self.operand.getType() == "float"):
-                        self.type = Type("float")
-                    else:
-                      print("Error: Unary type error")  
-                      self.type = Type("error")
-        return self.type
     
 class BinaryExpr():
     def __init__(self, operand1, operand2, operator, lineStart, lineEnd) -> None:
@@ -521,36 +520,6 @@ class BinaryExpr():
         s = "Binary(" + str(self.operator_table[self.operator]) + ", " + str(self.operand1) + ", " + str(self.operand2) + ")"
         return s
     
-    def getType(self):
-        if (self.type == None): 
-            if(self.operator in ["+", "-", "*", "/"]): #arithmetic operations
-                if (self.operand1.getType() == "int" and self.operand2.getType() == "int"):
-                    self.type = Type("int")
-                elif (self.operand1.getType() == "float" or self.operand2.getType() == "float"):
-                    self.type = Type("float")
-                else:
-                    print("Error: Binary type error (arithmetic operations)")
-                    self.type = Type("error")
-            elif (self.operator in ["&&", "||"]): #boolean operations
-                if (self.operand1.getType() == "boolean" and self.operand2.getType() == "boolean"):
-                    self.type = Type("boolean")
-                else:
-                    print("Error: Binary type error (boolean operations)")
-                    self.type = Type("error")
-            elif (self.operator in [">", ">=", "<", "<="]): #arithmetic comparisons
-                if ((self.operand1.getType() == "int" or self.operand1.getType() == "float")
-                    and (self.operand2.getType() == "int" or self.operand2.getType() == "float")):
-                    self.type = Type('boolean')
-                else:
-                    print("Error: Binary type error (arithmetic comparisons)")
-                    self.type = Type("error")
-            elif (self.operator in ["==","!="]): #equality comparisons
-                #TODO figure out how to get subtype
-                print("Error: Binary type error (equality comparisons)")
-                self.type = Type("error")
-        return self.type
-        
-    
 class AssignExpr():
     def __init__(self, leftExpr, rightExpr, lineStart, lineEnd) -> None:
         self.leftExpr = leftExpr
@@ -562,17 +531,7 @@ class AssignExpr():
     def __str__(self):
         s = "Assign(" + str(self.leftExpr) + ", " + str(self.rightExpr) + ")"
         return s
-    
-    def getType(self):
-        if(self.type == None):
-            if (self.leftExpr.getType() != "error" and self.rightExpr.getType() != "error"):
-                #TODO figure out e2 type is a subtype of e1 type
-                pass
-            else:
-                print("Error: Assign type error")
-                self.type = Type("error")
-        return self.type
-    
+
 class AutoExpr():
     def __init__(self, operand, incOrDec, preOrPost, lineStart, lineEnd) -> None:
         self.operand = operand
@@ -586,22 +545,14 @@ class AutoExpr():
         s = "Auto(" + str(self.operand) + ", " + str(self.incOrDec) + ", " + str(self.preOrPost) + ")"
         return s
     
-    def getType(self):
-        if(self.type == None):
-            if (self.operand.getType() == "int" or self.operand.getType() == "float"):
-                self.type = self.operand.getType()
-            else:
-                print("Auto type error")
-                self.type = Type("error")
-        return self.type
-    
 class FieldAccessExpr():
     def __init__(self, base, fieldName, lineStart, lineEnd) -> None:
         self.base = base
         self.fieldName = fieldName
         self.lineStart = lineStart
         self.lineEnd = lineEnd
-        
+        self.type = None
+
     def __str__(self):
         s = "Field-access(" + str(self.base) + ", " + str(self.fieldName) + ")"
         return s
@@ -613,6 +564,7 @@ class MethodCallExpr():
         self.exprs = exprs
         self.lineStart = lineStart
         self.lineEnd = lineEnd
+        self.type = None
 
     def __str__(self):
         s = ""
@@ -628,6 +580,7 @@ class NewObjectExpr():
         self.exprs = exprs
         self.lineStart = lineStart
         self.lineEnd = lineEnd
+        self.type = None
 
     def __str__(self):
         s = ""
@@ -636,11 +589,12 @@ class NewObjectExpr():
         else:
             s = "New-object(" + str(self.baseClassName) + ", " + str(self.exprs) + ")"
         return s    
-    
+
 class ThisExpr():
     def __init__(self, lineStart, lineEnd) -> None:
         self.lineStart = lineStart
         self.lineEnd = lineEnd  
+        self.type = None
 
     def __str__(self):
         return "This"
@@ -648,7 +602,8 @@ class ThisExpr():
 class SuperExpr():
     def __init__(self, lineStart, lineEnd) -> None:
         self.lineStart = lineStart
-        self.lineEnd = lineEnd  
+        self.lineEnd = lineEnd
+        self.type = None  
 
     def __str__(self):
         return "Super"
@@ -658,6 +613,7 @@ class ClassReferenceExpr():
         self.classRef = classRef
         self.lineStart = lineStart
         self.lineEnd = lineEnd
+        self.type = None
 
     def __str__(self):
         s = "Class-reference( " + str(self.classRef) + " )"
