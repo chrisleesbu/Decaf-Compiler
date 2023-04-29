@@ -355,8 +355,8 @@ class IfStmt():
         
 class WhileStmt():
     def __init__(self, expr, stmt, lineStart, lineEnd) -> None:
-        self.expr = expr
-        self.stmt = stmt
+        self.expr = expr #loop condition 
+        self.stmt = stmt #loop body
         self.lineStart = lineStart
         self.lineEnd = lineEnd
         self.typeCorrect = None
@@ -368,8 +368,8 @@ class WhileStmt():
 class ForStmt():
     def __init__(self, initializerExpr, loopExpr, updateExpr, stmt, lineStart, lineEnd) -> None:
         self.initializerExpr = initializerExpr
-        self.loopExpr = loopExpr
-        self.updateExpr = updateExpr
+        self.loopExpr = loopExpr #loop condition
+        self.updateExpr = updateExpr 
         self.stmt = stmt
         self.lineStart = lineStart
         self.lineEnd = lineEnd

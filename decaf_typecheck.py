@@ -1,5 +1,59 @@
 from decaf_ast import *
 
+class IfStmt():
+    def typeCheck(self): 
+        if (self.typeCorrect == None):
+            if (self.expr != "boolean" or self.thenStmt.typeCheck() == False or self.elseStmt.typeCheck() == False):
+                self.typeCorrect = False
+            else
+                self.typeCorrect = True
+        return self.typeCorrect
+
+class WhileStmt():
+    def typeCheck(self): 
+        if (self.typeCorrect == None):
+            if (self.expr != "boolean" or self.stmt.typeCheck() == False):
+                .typeCorrect = False
+            else
+                self.typeCorrect = True
+        return self.typeCorrect
+
+class ForStmt():
+    def typeCheck(self): 
+        if (self.typeCorrect == None):
+            if (self.loopExpr != "boolean" or self.initializerExpr.typeCheck() == False or self.updateExpr.typeCheck() == False or self.stmt.typeCheck() == False):
+                self.typeCorrect = False
+            else
+                self.typeCorrect = True
+        return self.typeCorrect
+
+class ReturnStmt():
+    def typeCheck(self): 
+        if (self.typeCorrect == None):
+            #If the expression is empty, then the declared return type of the method must be void (and viceversa).
+            #TODO
+            pass
+        return self.typeCorrect
+
+class ExprStmt(): 
+    def typeCheck(self): 
+        if (self.typeCorrect == None):
+            if (self.expr.typeCheck() == False):
+                self.typeCorrect = False
+            else
+                self.typeCorrect = True
+        return self.typeCorrect
+
+class BlockStmt():
+    def typeCheck(self): 
+        if (self.typeCorrect == None):
+            self.typeCorrect = True
+            for stmt in self.stmts:
+                if (stmt.typeCheck() == False):
+                    self.typeCorrect = False
+        return self.typeCorrect
+
+
 class Type():    
     def isSubtype(self, otherType):
         #Type T is a subtype of itself
