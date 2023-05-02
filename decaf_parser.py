@@ -11,7 +11,7 @@ import sys
 from decaf_lexer import *
 from decaf_ast import *
 names = {}
-
+import copy
 precedence = (('right', 'ASSIGN'),
               ('left', 'OR'),
               ('left', 'AND'),
@@ -100,6 +100,12 @@ def p_var_decl(p):
     
     p[0] = VarDecl(p[1], p[2])
     
+    global var_counter
+    curr = p[2]
+    while curr:
+        scope_stack[-1][(str(p[1]), curr.current.name)] = var_counter
+        var_counter += 1    
+        curr = curr.next
     
     pass
 
@@ -128,9 +134,6 @@ def p_variables_cont(p):
 def p_variable(p):
     'variable : ID'
     p[0] = Variable(p[1])
-    global var_counter
-    scope_stack[-1][p[0].name] = var_counter
-    var_counter += 1
     pass
 
 def p_method_decl(p):
@@ -434,12 +437,14 @@ def p_field_access(p):
         var = p[1]
         found = False
         for i in reversed(scope_stack):
-            if var in i:
-                found = True
-                break
-           
+            keys = i.keys()
+            for j in keys:
+                if var in j:
+                    found = True
+                    break
+        #print(scope_stack)
         if (p[1] in curr_vars):
-            p[0] = VarExpr(p[1], p.lineno, p.lineno, curr_vars[p[1]]) # bandaid fix that isnt really a fix: curr_vars[p[1]] if p[1] in curr_vars else None
+            p[0] = VarExpr(p[1], p.lineno, p.lineno, curr_vars[p[1]], stack=copy.deepcopy(scope_stack)) # bandaid fix that isnt really a fix: curr_vars[p[1]] if p[1] in curr_vars else None
             
         else:
             p[0] = ClassReferenceExpr(p[1], p.lineno, p.lineno)

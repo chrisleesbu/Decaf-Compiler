@@ -10,7 +10,7 @@ import ply.lex as lex
 import ply.yacc as yacc
 
 import itertools
-
+import decaf_typecheck
 def just_scan():
     fn = sys.argv[1] if len(sys.argv) > 1 else ""
     if fn == "":
@@ -44,7 +44,8 @@ def main():
     source = fh.read()
     fh.close()
     result = parser.parse(source, lexer = lexer, debug = 0)
-    print(result)
+    decaf_typecheck.type_check(result)
+    #print(result)
     # Parsing Successful
     #print()
     #print("YES")

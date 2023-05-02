@@ -6,7 +6,6 @@
 # Name: Christopher Lee
 # NetID: lee111
 # SBUID: 113378397
-from decaf_typecheck import * 
 
 class_record = dict()
 field_ids = {1}
@@ -315,6 +314,7 @@ class Method():
             index += 1
             
         var_map = dict();
+        self.var_table = var_table
         counter = len(formals_table) + 1 
         for i, var in enumerate(var_table):
             for x, element in enumerate(var):
@@ -474,11 +474,12 @@ class ConstantExpr():
         return s
 
 class VarExpr():
-    def __init__(self, idVar, lineStart, lineEnd, unique_id) -> None:
+    def __init__(self, idVar, lineStart, lineEnd, unique_id, stack=None) -> None:
         self.idVar = idVar
         self.lineStart = lineStart
         self.lineEnd = lineEnd
         self.unique_id = unique_id
+        self.scope_stack = stack
         self.type = None #TODO 
         
     def __str__(self):
