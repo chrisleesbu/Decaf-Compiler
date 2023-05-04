@@ -140,7 +140,6 @@ class VarDecl():
     def __init__(self, type, vars) -> None:
         self.type = type
         self.vars = vars
-        
 
 class Type():
     def __init__(self, type, isLiteral=False) -> None:
@@ -156,6 +155,29 @@ class Type():
 
     def __str__(self):
         return f'{self.type}'
+    
+    def isSubtype(self, otherType):
+        #Type T is a subtype of itself
+        if (self.type == otherType.type):
+            return True
+
+        #int is a subtype of float
+        if (self.type == "int" and otherType.type == "float") or (self.type == "float" and otherType.type == "int"):
+            return True
+
+        #user(A) is a subtype of user(B) if A is a subclass of B.
+        if (self.category == "user" and otherType.category == "user"):
+            return self.isSubclass(otherType.type)
+
+        #null is a subtype of user(A) for any class A
+        if (self.type == "null" and self.category == "user"):
+            return True
+
+        #class-literal(A) is a subtype of class-literal(B) if A is a subclass of B
+        if (self.category == "classLiteral" and otherType.category == "classLiteral"):
+            return self.type.isSubclass(otherType.type)
+        
+        return False
     
 class Variables():
     def __init__(self, current = None, n = None) -> None:
@@ -279,7 +301,6 @@ class Method():
         self.current_table = curr_vars
         curr_vars.clear()
         curr_var_ids.clear()
-        #print(scope_stack)
     def __str__(self) -> str:
         s = ""
         formals_table = []
@@ -352,6 +373,14 @@ class IfStmt():
                 s = "If ( " + str(self.expr) + ",\nElse " + str(self.elseStmt) + " )"
         
         return s
+    
+    def typeCheck(self): 
+        if (self.typeCorrect == None):
+            if (str(self.expr.getType()) != "boolean" or (self.thenStmt and self.thenStmt.typeCheck() == False) or (self.elseStmt and self.elseStmt.typeCheck() == False)):
+                self.typeCorrect = False
+            else:
+                self.typeCorrect = True
+        return self.typeCorrect
         
 class WhileStmt():
     def __init__(self, expr, stmt, lineStart, lineEnd) -> None:
@@ -364,6 +393,14 @@ class WhileStmt():
     def __str__(self):
         s = "While( " + str(self.expr) + ", " + str(self.stmt) + " )" if str(self.stmt) else "While( " + str(self.expr) + " )"
         return s
+    
+    def typeCheck(while_stmt): 
+        if (while_stmt.typeCorrect == None):
+            if (while_stmt.expr.getType().type != "boolean" or while_stmt.stmt.typeCheck() == False):
+                while_stmt.typeCorrect = False
+            else:
+                while_stmt.typeCorrect = True
+        return while_stmt.typeCorrect
 
 class ForStmt():
     def __init__(self, initializerExpr, loopExpr, updateExpr, stmt, lineStart, lineEnd) -> None:
@@ -379,6 +416,13 @@ class ForStmt():
         s = "For( " + str(self.initializerExpr) + ", " + str(self.loopExpr) + ", " + str(self.updateExpr) + ", " + str(self.stmt) + " )"
         return s
     
+    def typeCheck(self): 
+        if (self.typeCorrect == None):
+            if (self.loopExpr.getType().type != "boolean" or self.initializerExpr.typeCheck() == False or self.updateExpr.typeCheck() == False or self.stmt.typeCheck() == False):
+                self.typeCorrect = False
+            else:
+                self.typeCorrect = True
+        return self.typeCorrect
 class ReturnStmt():
     def __init__(self, returnValue, lineStart, lineEnd) -> None:
         self.returnValue = returnValue
@@ -390,6 +434,12 @@ class ReturnStmt():
         s = "Return( " + str(self.returnValue) + " )"
         return s
 
+    def typeCheck(self): 
+        if (self.typeCorrect == None):
+            #If the expression is empty, then the declared return type of the method must be void (and viceversa).
+            #TODO
+            pass
+        return self.typeCorrect
 
 class ExprStmt():
     def __init__(self, expr, lineStart, lineEnd) -> None:
@@ -401,6 +451,14 @@ class ExprStmt():
     def __str__(self):
         s = "Expr( " + str(self.expr) + " )"
         return s 
+    
+    def typeCheck(self): 
+        if (self.typeCorrect == None):
+            if (self.expr.typeCheck() == False):
+                self.typeCorrect = False
+            else:
+                self.typeCorrect = True
+        return self.typeCorrect
 
 class BlockStmt():
     def __init__(self, stmts, lineStart, lineEnd) -> None:
@@ -427,6 +485,16 @@ class BlockStmt():
                 self.var_decls.append(stmt)
         s += "\n])"
         return s 
+    
+    def typeCheck(self): 
+        
+        if (self.typeCorrect == None):
+            self.typeCorrect = True
+            for stmt in self.stmts:
+                if not isinstance(stmt, VarDecl):
+                    if (stmt.typeCheck() == False):
+                        self.typeCorrect = False
+        return self.typeCorrect
 
 class BreakStmt():
     def __init__(self, lineStart, lineEnd) -> None:
@@ -472,6 +540,9 @@ class ConstantExpr():
         else:
             s = "Constant(" + str(self.version) + "-constant(" + str(self.info) + ")" + ")"
         return s
+    
+    def getType(self):
+        return self.type
 
 class VarExpr():
     def __init__(self, idVar, lineStart, lineEnd, unique_id, stack=None) -> None:
@@ -485,6 +556,13 @@ class VarExpr():
     def __str__(self):
         s = "Variable(" + str(self.unique_id) + ")"
         return s
+    
+    def getType(self):
+        for i in reversed(self.scope_stack):
+            for j in i.keys():
+                if self.idVar in j:
+                    return Type(j[0])
+        return None
 
 class UnaryExpr():
     def __init__(self, operand, unary, lineStart, lineEnd) -> None:
@@ -501,6 +579,25 @@ class UnaryExpr():
         else:
             s = "Unary(" + str(self.unary) + str(self.operand) + ")"   
         return s
+    
+    def getType(self):
+        if (self.type == None):
+            if (self.unary == '!'):
+                if (self.operand.getType().type == "boolean"):
+                    self.type = Type("boolean")
+                else:
+                    print("Error: Unary type error")
+                    self.type = Type("error")
+            elif(self.unary == "-"): 
+                if (self.unary == '-'):
+                    if (self.operand.getType().type == "int"):
+                        self.type = Type("int")
+                    elif (self.operand.getType().type == "float"):
+                        self.type = Type("float")
+                    else:
+                      print("Error: Unary type error")  
+                      self.type = Type("error")
+        return self.type
     
 class BinaryExpr():
     def __init__(self, operand1, operand2, operator, lineStart, lineEnd) -> None:
@@ -521,6 +618,42 @@ class BinaryExpr():
         s = "Binary(" + str(self.operator_table[self.operator]) + ", " + str(self.operand1) + ", " + str(self.operand2) + ")"
         return s
     
+    def getType(self):
+        if (self.type == None): 
+            if(self.operator in ["+", "-", "*", "/"]): #arithmetic operations
+                if (self.operand1.getType().type == "int" and self.operand2.getType().type == "int"):
+                    self.type = Type("int")
+                elif (self.operand1.getType().type == "float" or self.operand2.getType().type == "float"):
+                    self.type = Type("float")
+                else:
+                    print("Error: Binary type error (arithmetic operations)")
+                    self.type = Type("error")
+                    
+            elif (self.operator in ["&&", "||"]): #boolean operations
+                if (self.operand1.getType().type == "boolean" and self.operand2.getType().type == "boolean"):
+                    self.type = Type("boolean")
+                else:
+                    print("Error: Binary type error (boolean operations)")
+                    self.type = Type("error")
+                    exit(1)
+            elif (self.operator in [">", ">=", "<", "<="]): #arithmetic comparisons
+                if ((self.operand1.getType().type == "int" or self.operand1.getType().type == "float")
+                    and (self.operand2.getType().type == "int" or self.operand2.getType().type == "float")):
+                    self.type = Type('boolean')
+                else:
+                    print("Error: Binary type error (arithmetic comparisons)")
+                    self.type = Type("error")
+                    exit(1)
+            elif (self.operator in ["==","!="]): #equality comparisons
+                if ((self.operand1.getType().type == "int" or self.operand1.getType().type == "float")
+                    and (self.operand2.getType().type == "int" or self.operand2.getType().type == "float")):
+                    self.type = Type('boolean')
+                else:
+                    print("Error: Binary type error (equality comparisons)")
+                    self.type = Type("error")
+                    exit(1)
+        return self.type
+    
 class AssignExpr():
     def __init__(self, leftExpr, rightExpr, lineStart, lineEnd) -> None:
         self.leftExpr = leftExpr
@@ -532,6 +665,21 @@ class AssignExpr():
     def __str__(self):
         s = "Assign(" + str(self.leftExpr) + ", " + str(self.rightExpr) + ")"
         return s
+    
+    def typeCheck(self):
+        if(self.type == None):
+            if (self.leftExpr.getType().type != "error" and self.rightExpr.getType().type != "error"):
+                if (self.rightExpr.getType().isSubtype(self.leftExpr.getType())):
+                    self.type = self.rightExpr.getType()
+                else:
+                    print("Error: Assign type error (not subtype)")
+                    self.type = Type("error")
+                    exit(1)
+            else:
+                print("Error: Assign type error")
+                self.type = Type("error")
+                exit(1)
+        return self.type
 
 class AutoExpr():
     def __init__(self, operand, incOrDec, preOrPost, lineStart, lineEnd) -> None:
@@ -545,6 +693,15 @@ class AutoExpr():
     def __str__(self):
         s = "Auto(" + str(self.operand) + ", " + str(self.incOrDec) + ", " + str(self.preOrPost) + ")"
         return s
+    
+    def typeCheck(self):
+        if(self.type == None):
+            if (self.operand.getType().type == "int" or self.operand.getType().type == "float"):
+                self.type = self.operand.getType()
+            else:
+                print("Auto type error")
+                self.type = Type("error")
+        return self.type
     
 class FieldAccessExpr():
     def __init__(self, base, fieldName, lineStart, lineEnd) -> None:
@@ -574,7 +731,7 @@ class MethodCallExpr():
         else:
             s = "Method-call(" + str(self.base) + ", " + str(self.methodName) + ", " + str(self.exprs) + ")"
         return s 
-
+    
 class NewObjectExpr():
     def __init__(self, baseClassName, exprs, lineStart, lineEnd) -> None:
         self.baseClassName = baseClassName

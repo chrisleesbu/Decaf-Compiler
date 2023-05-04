@@ -1,9 +1,14 @@
 class A {
     int x() {
         int a;
-        int b;
+        float b;
+        for (a = 1; a + 50; a = a + 5) {
+
+        }
         if (a > b) {
             a++;
+        } else {
+            b++;
         }
         return a;
     }
