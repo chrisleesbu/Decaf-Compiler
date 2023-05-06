@@ -1,5 +1,6 @@
 class test1
 {
+    private int b;
     public static void main()
     {   
         int a;

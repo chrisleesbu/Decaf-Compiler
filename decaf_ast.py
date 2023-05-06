@@ -6,6 +6,8 @@
 # Name: Christopher Lee
 # NetID: lee111
 # SBUID: 113378397
+from typing import Any
+from decaf_typecheck import *
 
 class_record = dict()
 field_ids = {1}
@@ -454,7 +456,7 @@ class ExprStmt():
     
     def typeCheck(self): 
         if (self.typeCorrect == None):
-            if (self.expr.typeCheck() == False):
+            if (self.expr.getType().category == "error"):
                 self.typeCorrect = False
             else:
                 self.typeCorrect = True
@@ -666,7 +668,7 @@ class AssignExpr():
         s = "Assign(" + str(self.leftExpr) + ", " + str(self.rightExpr) + ")"
         return s
     
-    def typeCheck(self):
+    def getType(self):
         if(self.type == None):
             if (self.leftExpr.getType().type != "error" and self.rightExpr.getType().type != "error"):
                 if (self.rightExpr.getType().isSubtype(self.leftExpr.getType())):
@@ -694,7 +696,7 @@ class AutoExpr():
         s = "Auto(" + str(self.operand) + ", " + str(self.incOrDec) + ", " + str(self.preOrPost) + ")"
         return s
     
-    def typeCheck(self):
+    def getType(self):
         if(self.type == None):
             if (self.operand.getType().type == "int" or self.operand.getType().type == "float"):
                 self.type = self.operand.getType()
@@ -714,6 +716,18 @@ class FieldAccessExpr():
     def __str__(self):
         s = "Field-access(" + str(self.base) + ", " + str(self.fieldName) + ")"
         return s
+    
+    # def getType(self):
+    #     #p's type is user(A), and z is a non-static field.
+    #     #p's type is class-literal(A) and z is a static field.
+    #     if (self.type == None):
+    #         if(self.base.getType().category == "user" or self.base.getType().category == "classLiteral"):
+    #             pass
+    #         else:
+    #             print("Field access type error")
+    #             self.type = Type("error")
+    #     return self.type
+
 
 class MethodCallExpr():
     def __init__(self, base, methodName, exprs, lineStart, lineEnd) -> None:
@@ -730,7 +744,16 @@ class MethodCallExpr():
             s = "Method-call(" + str(self.base) + ", " + str(self.methodName) + ", [])" 
         else:
             s = "Method-call(" + str(self.base) + ", " + str(self.methodName) + ", " + str(self.exprs) + ")"
-        return s 
+        return s  
+    
+    def getType(self):
+        print(self.base.getType())
+        print(self.methodName)
+        print(self.exprs)
+
+    def methodResolution(self):
+        pass
+
     
 class NewObjectExpr():
     def __init__(self, baseClassName, exprs, lineStart, lineEnd) -> None:
@@ -749,6 +772,8 @@ class NewObjectExpr():
         return s    
 
 class ThisExpr():
+    global curr
+
     def __init__(self, lineStart, lineEnd) -> None:
         self.lineStart = lineStart
         self.lineEnd = lineEnd  
@@ -756,8 +781,16 @@ class ThisExpr():
 
     def __str__(self):
         return "This"
+    
+    def getType(self):
+        if(self.type == None):
+            self.type = Type(curr)
+        return self.type
+
 
 class SuperExpr():
+    global curr
+
     def __init__(self, lineStart, lineEnd) -> None:
         self.lineStart = lineStart
         self.lineEnd = lineEnd
@@ -765,6 +798,15 @@ class SuperExpr():
 
     def __str__(self):
         return "Super"
+    
+    def getType(self):
+        if(self.type == None):
+            if (curr.super_class == None):
+                self.type = Type("error")
+                print("Super type error (no superclass)")
+            else:
+                self.type = Type(curr.super_class)
+        return self.type
 
 class ClassReferenceExpr():
     def __init__(self, classRef, lineStart, lineEnd) -> None:
@@ -776,3 +818,8 @@ class ClassReferenceExpr():
     def __str__(self):
         s = "Class-reference( " + str(self.classRef) + " )"
         return s
+    
+    def getType(self):
+        if (self.type == None):
+            self.type = Type(self.classRef, isLiteral=True)
+        return self.type

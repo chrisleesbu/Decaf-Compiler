@@ -10,6 +10,7 @@ import decaf_ast as ast
 
 def type_check(program):
     class_list = program.class_list
+    global curr
     curr = class_list.val
     while curr:
         for method in curr.methods:
@@ -29,7 +30,6 @@ def type_check(program):
 
 # ***** EXPRESSIONS *****
 
-class VarExpr():
     def getType(self):
         #TODO figure out the type of the var
         pass
@@ -44,16 +44,6 @@ class VarExpr():
 #         pass
 
 # class NewObjectExpr():
-#     def getType(self):
-#         #TODO
-#         pass
-
-# class ThisExpr():
-#     def getType(self):
-#         #TODO
-#         pass
-
-# class SuperExpr():
 #     def getType(self):
 #         #TODO
 #         pass
