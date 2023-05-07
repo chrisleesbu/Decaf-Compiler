@@ -115,14 +115,22 @@ class Class():
                 s += f'FIELD {len(field_ids)}, {curr.current.name}, {self.name}, {vis}, {modifier}, {type if type == "int" or type == "float" or type == "boolean" else f"user({type})"}\n'
                 field_ids.add(len(field_ids) + 1)
                 curr = curr.next
-            
+
         s += "Constructors:\n"
         for constructor in self.constructors:
+            formals_declared = {0}
             vars_declared = {0}
-            for i in self.block.var_decls:
+            curr = constructor.formals
+            while curr:
+                if curr.current.variable.name in formals_declared:
+                    print(f"Error: {curr.current.variable.name} already declared")
+                    exit(1)
+                formals_declared.add(curr.current.variable.name)
+                curr = curr.next
+            for i in constructor.block.var_decls:
                 curr = i.vars
                 while curr:
-                    if curr.current.name in field_declarations or curr.current.name in vars_declared:
+                    if curr.current.name in field_declarations or curr.current.name in vars_declared or curr.current.name in formals_declared:
                         print(f"Error: {curr.current.name} already declared")
                         exit(1)
                     vars_declared.add(curr.current.name)
@@ -132,13 +140,20 @@ class Class():
         s += "Methods:\n"
             
         for method in self.methods:
-            print(method)
             modifier = method.visibility if method.visibility else "private"
+            formals_declared = {0}
             vars_declared = {0}
-            for i in self.body.var_decls:
+            curr = method.parameters
+            while curr:
+                if curr.current.variable.name in formals_declared:
+                    print(f"Error: {curr.current.variable.name} already declared")
+                    exit(1)
+                formals_declared.add(curr.current.variable.name)
+                curr = curr.next
+            for i in method.body.var_decls:
                 curr = i.vars
                 while curr:
-                    if curr.current.name in field_declarations or curr.current.name in vars_declared:
+                    if curr.current.name in field_declarations or curr.current.name in vars_declared or curr.current.name in formals_declared:
                         print(f"Error: {curr.current.name} already declared")
                         exit(1)
                     vars_declared.add(curr.current.name)
@@ -849,7 +864,10 @@ class MethodCallExpr():
         if (self.exprs == None):
             s = "Method-call(" + str(self.base) + ", " + str(self.methodName) + ", [])" 
         else:
-            s = "Method-call(" + str(self.base) + ", " + str(self.methodName) + ", " + str(self.exprs) + ")"
+            s = "Method-call(" + str(self.base) + ", " + str(self.methodName) 
+            for x in self.exprs:
+                s += ", " + str(x) + " "  
+            s += ")"
         return s  
     
     def getType(self):
@@ -906,7 +924,10 @@ class NewObjectExpr(): #constructor
         if (self.exprs == None):
             s = "New-object(" + str(self.baseClassName) + ", [])" 
         else:
-            s = "New-object(" + str(self.baseClassName) + ", " + str(self.exprs) + ")"
+            s = "New-object(" + str(self.baseClassName)
+            for x in self.exprs:
+                s += ", " + str(x) + " "  
+            s += ")"
         return s    
     
     # def getType(self):
