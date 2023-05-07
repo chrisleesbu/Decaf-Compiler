@@ -43,6 +43,7 @@ def main():
     fh = open(fn, 'r')
     source = fh.read()
     fh.close()
+    global result
     result = parser.parse(source, lexer = lexer, debug = 0)
     decaf_typecheck.type_check(result)
     #print(result)

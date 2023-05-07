@@ -6,7 +6,7 @@
 # Name: Christopher Lee
 # NetID: lee111
 # SBUID: 113378397
-from typing import Any
+from decaf_checker import *
 from decaf_typecheck import *
 
 class_record = dict()
@@ -336,7 +336,7 @@ class Method():
                 curr = curr.next
             index += 1
             
-        var_map = dict();
+        var_map = dict()
         self.var_table = var_table
         counter = len(formals_table) + 1 
         for i, var in enumerate(var_table):
@@ -747,12 +747,39 @@ class MethodCallExpr():
         return s  
     
     def getType(self):
-        print(self.base.getType())
-        print(self.methodName)
-        print(self.exprs)
+        if (self.type == None):
+            if (self.base.getType().category == "user"):
+                methodResolve = self.methodResolution(self.base.getType(), self.methodName, self.exprs, "instance") 
+                if (methodResolve == None):
+                    self.type = Type("error")
+                    print("Method resolve failed")
+                else:
+                    self.type = methodResolve
+            elif (self.base.getType().category == "classLiteral"):
+                methodResolve = self.methodResolution(self.base.getType(), self.methodName, self.exprs, "static") 
+                if (methodResolve == None):
+                    self.type = Type("error")
+                    print("Method resolve failed")
+                else:
+                    self.type = methodResolve
+            else:
+                self.type = Type("error")
+                print("Method call type error")
+        return self.type
 
-    def methodResolution(self):
-        pass
+    def methodResolution(self, methodClass, methodName, methodParameters, applicability):
+        #keep checking methods from base class to super class and if nothing is found return none
+        currentClass = methodClass
+        while (currentClass):
+            for method in methodClass.type.methods:
+                if(method.name == methodName 
+                and len(method.parameters) == len(methodParameters) 
+                and applicability == method.applicability):
+                    for parameter in methodParameters:
+                        print(parameter)
+            currentClass = methodClass.type.super_class
+        return None
+
 
     
 class NewObjectExpr():
@@ -809,6 +836,7 @@ class SuperExpr():
         return self.type
 
 class ClassReferenceExpr():
+
     def __init__(self, classRef, lineStart, lineEnd) -> None:
         self.classRef = classRef
         self.lineStart = lineStart
@@ -820,6 +848,11 @@ class ClassReferenceExpr():
         return s
     
     def getType(self):
+        global class_record
         if (self.type == None):
-            self.type = Type(self.classRef, isLiteral=True)
+            if (self.classRef not in class_record.keys()):
+                self.type = Type("error")
+                print("Class reference does not exist")
+            else:
+                self.type = Type(class_record[self.classRef], isLiteral=True)
         return self.type
