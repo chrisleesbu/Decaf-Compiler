@@ -400,19 +400,21 @@ def p_primary_method_invocation(p):
     p[0] = p[1]
     pass
 
-def p_arguments(p):
-    '''arguments : expr arguments_cont
-                 | empty'''
-    if (p[1]):
-        p[0] = p[1]
-    pass
+def p_arguments_nonempty(p):
+    'arguments : arg_plus'
+    p[0] = p[1]
 
-def p_arguments_cont(p):
-    '''arguments_cont : COMMA expr arguments_cont
-                      | empty'''
-    if (p[1]):
-        p[0] = p[3] + [p[2]]
-    pass
+def p_arguments_empty(p):
+    'arguments : empty'
+    p[0] = []
+
+def p_arguments_single(p):
+    'arg_plus : expr'
+    p[0] = [p[1]]
+
+def p_arguments_plus(p):
+    'arg_plus : arg_plus COMMA expr'
+    p[0] = p[1] + [p[3]]
 
 def p_lhs(p):
     'lhs : field_access'

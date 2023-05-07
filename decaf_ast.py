@@ -132,6 +132,7 @@ class Class():
         s += "Methods:\n"
             
         for method in self.methods:
+            print(method)
             modifier = method.visibility if method.visibility else "private"
             vars_declared = {0}
             for i in self.body.var_decls:
@@ -230,6 +231,18 @@ class Variables():
     def __init__(self, current = None, n = None) -> None:
         self.current = current
         self.next = n
+
+    def getList(self):
+        variablesList = []
+        head = self.current
+        next = self.next
+        while (head != None):
+            variablesList.append(head)
+            if (next == None):
+                break
+            head = next.current
+            next = next.next
+        return variablesList
         
 class VariablesCont():
     def __init__(self, current = None, n = None) -> None:
@@ -307,6 +320,19 @@ class FormalList():
         self.current = curr
         self.next = n
         pass
+
+    def getList(self):
+        formalList = []
+        head = self.current
+        next = self.next
+        while (head != None):
+            formalList.append(head)
+            if (next == None):
+                break
+            head = next.current
+            next = next.next
+        return formalList
+
     
 class FormalCont():
     def __init__(self, curr, n) -> None:
@@ -318,6 +344,9 @@ class Formal():
     def __init__(self, type, variable) -> None:
         self.type = type
         self.variable = variable
+
+    def getList(self):
+        return [self]
     
 class StmtList():
     def __init__(self, current, n):
@@ -598,18 +627,19 @@ class VarExpr():
         self.lineEnd = lineEnd
         self.unique_id = unique_id
         self.scope_stack = stack
-        self.type = None #TODO 
+        self.type = None
         
     def __str__(self):
         s = "Variable(" + str(self.unique_id) + ")"
         return s
     
     def getType(self):
-        for i in reversed(self.scope_stack):
-            for j in i.keys():
-                if self.idVar in j:
-                    return Type(j[0])
-        return None
+        if (self.type == None):
+            for i in reversed(self.scope_stack):
+                for j in i.keys():
+                    if self.idVar in j:
+                        self.type = Type(j[0])
+        return self.type
 
 class UnaryExpr():
     def __init__(self, operand, unary, lineStart, lineEnd) -> None:
@@ -714,6 +744,10 @@ class AssignExpr():
         return s
     
     def getType(self):
+        # print("left")
+        # print(self.leftExpr)
+        # print("right")
+        # print(self.rightExpr.getType())
         if(self.type == None):
             if (self.leftExpr.getType().type != "error" and self.rightExpr.getType().type != "error"):
                 if (self.rightExpr.getType().isSubtype(self.leftExpr.getType())):
@@ -762,16 +796,43 @@ class FieldAccessExpr():
         s = "Field-access(" + str(self.base) + ", " + str(self.fieldName) + ")"
         return s
     
-    # def getType(self):
-    #     #p's type is user(A), and z is a non-static field.
-    #     #p's type is class-literal(A) and z is a static field.
-    #     if (self.type == None):
-    #         if(self.base.getType().category == "user" or self.base.getType().category == "classLiteral"):
-    #             pass
-    #         else:
-    #             print("Field access type error")
-    #             self.type = Type("error")
-    #     return self.type
+    def getType(self):
+        #p's type is user(A), and z is a non-static field.
+        #p's type is class-literal(A) and z is a static field.
+        if (self.type == None):
+            if(self.base.getType().category == "user" or self.base.getType().category == "classLiteral"):
+                if(self.base.getType().category == "user"):
+                    fieldResolve = self.fieldResolution(self.base.getType(), self.fieldName, "instance")
+                    if (fieldResolve == None):
+                        self.type = Type("error")
+                        print("Field resolve failed")
+                    else:
+                        self.type = fieldResolve.var_decl.type
+                else:
+                    fieldResolve = self.fieldResolution(self.base.getType(), self.fieldName, "static") 
+                    if (fieldResolve == None):
+                        self.type = Type("error")
+                        print("Field resolve failed")
+                    else:
+                        self.type = fieldResolve.var_decl.type
+                    pass
+            else:
+                print("Field access type error")
+                self.type = Type("error")
+        return self.type
+
+    def fieldResolution(self, fieldClass, fieldName, applicability):
+        currentClass = fieldClass
+        while (currentClass):
+            for field in fieldClass.type.fields:
+                varsList = field.var_decl.vars.getList()
+                for var in varsList:
+                    if (var.name == fieldName): 
+                        #found field name
+                        if (field.modifier.first == "public" and field.modifier.second == applicability):
+                            return field
+            currentClass = currentClass.type.super_class
+        return None
 
 
 class MethodCallExpr():
@@ -793,20 +854,24 @@ class MethodCallExpr():
     
     def getType(self):
         if (self.type == None):
+            if isinstance(self.base, ClassReferenceExpr):
+                if (self.base.classRef == "Out" or self.base.classRef == "In"):
+                    self.type = Type("builtin")
+                    return self.type
             if (self.base.getType().category == "user"):
                 methodResolve = self.methodResolution(self.base.getType(), self.methodName, self.exprs, "instance") 
                 if (methodResolve == None):
                     self.type = Type("error")
                     print("Method resolve failed")
                 else:
-                    self.type = methodResolve
+                    self.type = methodResolve.returnType
             elif (self.base.getType().category == "classLiteral"):
                 methodResolve = self.methodResolution(self.base.getType(), self.methodName, self.exprs, "static") 
                 if (methodResolve == None):
                     self.type = Type("error")
                     print("Method resolve failed")
                 else:
-                    self.type = methodResolve
+                    self.type = methodResolve.returnType
             else:
                 self.type = Type("error")
                 print("Method call type error")
@@ -817,17 +882,18 @@ class MethodCallExpr():
         currentClass = methodClass
         while (currentClass):
             for method in methodClass.type.methods:
-                if(method.name == methodName 
-                and len(method.parameters) == len(methodParameters) 
-                and applicability == method.applicability):
-                    for parameter in methodParameters:
-                        print(parameter)
-            currentClass = methodClass.type.super_class
+                parameterList = method.parameters.getList()
+                if (method.name == methodName and len(parameterList) == len(methodParameters) and applicability == method.applicability):
+                    for i in range(len(methodParameters)):
+                        if not (methodParameters[i].getType().isSubtype(parameterList[i].type)):
+                            break
+                    return method
+                else:
+                    return None
+            currentClass = currentClass.type.super_class
         return None
-
-
     
-class NewObjectExpr():
+class NewObjectExpr(): #constructor
     def __init__(self, baseClassName, exprs, lineStart, lineEnd) -> None:
         self.baseClassName = baseClassName
         self.exprs = exprs
@@ -842,6 +908,32 @@ class NewObjectExpr():
         else:
             s = "New-object(" + str(self.baseClassName) + ", " + str(self.exprs) + ")"
         return s    
+    
+    # def getType(self):
+    #     global class_record
+
+    #     if (self.type == None):
+    #         # print(self.exprs)
+    #         # print(self.exprs[0].idVar)
+    #         # print(self.exprs[0].getType())
+    #         self.constructorResolution(class_record[self.baseClassName], self.exprs)
+    #     return None
+    
+    # def constructorResolution(self, constructorClass, constructorParameters):
+    #     currentClass = constructorClass
+    #     while (currentClass):
+    #         for method in methodClass.type.methods:
+    #             parameterList = method.parameters.getList()
+    #             if (method.name == methodName and len(parameterList) == len(methodParameters) and applicability == method.applicability):
+    #                 for i in range(len(methodParameters)):
+    #                     if not (methodParameters[i].getType().isSubtype(parameterList[i].type)):
+    #                         break
+    #                 return method
+    #             else:
+    #                 return None
+    #         currentClass = currentClass.type.super_class
+    #     return None
+    
 
 class ThisExpr():
     global curr
