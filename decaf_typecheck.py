@@ -8,16 +8,20 @@
 # SBUID: 113378397
 import decaf_ast as ast
 
+curr = None
+
 def type_check(program):
-    class_list = program.class_list
     global curr
+
+    class_list = program.class_list
     curr = class_list.val
+    print(curr)
     while curr:
         for method in curr.methods:
             return_type = method.returnType
             for stmt in method.body.stmts:
                 if not isinstance(stmt, ast.VarDecl):
-                    # print(type(stmt))
+                    print(stmt.typeCheck())
                     print("", end="")
         # for constructor in curr.constructors:
         #     for stmt in constructor.body.stmts:

@@ -23,6 +23,7 @@ curr_var_ids = set()
 
 scope_stack = []
 var_counter = 1
+
 class Program():
     def __init__(self, class_list):
         self.class_list = class_list 
@@ -839,7 +840,7 @@ class FieldAccessExpr():
     def fieldResolution(self, fieldClass, fieldName, applicability):
         currentClass = fieldClass
         while (currentClass):
-            for field in fieldClass.type.fields:
+            for field in currentClass.type.fields:
                 varsList = field.var_decl.vars.getList()
                 for var in varsList:
                     if (var.name == fieldName): 
@@ -899,7 +900,7 @@ class MethodCallExpr():
         #keep checking methods from base class to super class and if nothing is found return none
         currentClass = methodClass
         while (currentClass):
-            for method in methodClass.type.methods:
+            for method in currentClass.type.methods:
                 parameterList = method.parameters.getList()
                 if (method.name == methodName and len(parameterList) == len(methodParameters) and applicability == method.applicability):
                     for i in range(len(methodParameters)):
@@ -930,30 +931,33 @@ class NewObjectExpr(): #constructor
             s += ")"
         return s    
     
-    # def getType(self):
-    #     global class_record
+    def getType(self):
+        global class_record
 
-    #     if (self.type == None):
-    #         # print(self.exprs)
-    #         # print(self.exprs[0].idVar)
-    #         # print(self.exprs[0].getType())
-    #         self.constructorResolution(class_record[self.baseClassName], self.exprs)
-    #     return None
+        if (self.type == None):
+            constructorResolve = self.constructorResolution(class_record[self.baseClassName], self.exprs)
+            if (constructorResolve == None):
+                self.type = Type("error")
+                print("New object expr type error")
+            else: 
+                self.type = Type(self.baseClassName)
+        return self.type
+
     
-    # def constructorResolution(self, constructorClass, constructorParameters):
-    #     currentClass = constructorClass
-    #     while (currentClass):
-    #         for method in methodClass.type.methods:
-    #             parameterList = method.parameters.getList()
-    #             if (method.name == methodName and len(parameterList) == len(methodParameters) and applicability == method.applicability):
-    #                 for i in range(len(methodParameters)):
-    #                     if not (methodParameters[i].getType().isSubtype(parameterList[i].type)):
-    #                         break
-    #                 return method
-    #             else:
-    #                 return None
-    #         currentClass = currentClass.type.super_class
-    #     return None
+    def constructorResolution(self, constructorClass, constructorParameters):
+        currentClass = constructorClass
+        while (currentClass):
+            for constructor in currentClass.constructors:
+                parameterList = constructor.formals.getList()
+                if (constructor.name == self.baseClassName and len(parameterList) == len(constructorParameters)):
+                    for i in range(len(constructorParameters)):
+                        if not (constructorParameters[i].getType().isSubtype(parameterList[i].type)):
+                            break
+                    return constructor
+                else:
+                    return None
+            currentClass = currentClass.type.super_class
+        return None
     
 
 class ThisExpr():
@@ -969,6 +973,7 @@ class ThisExpr():
     
     def getType(self):
         if(self.type == None):
+            # print(curr)
             self.type = Type(curr)
         return self.type
 
