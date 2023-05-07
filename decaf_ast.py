@@ -7,7 +7,7 @@
 # NetID: lee111
 # SBUID: 113378397
 from decaf_checker import *
-from decaf_typecheck import *
+import decaf_typecheck
 
 class_record = dict()
 field_ids = {1}
@@ -974,7 +974,7 @@ class ThisExpr():
     def getType(self):
         if(self.type == None):
             # print(curr)
-            self.type = Type(curr)
+            self.type = Type(decaf_typecheck.curr)
         return self.type
 
 
