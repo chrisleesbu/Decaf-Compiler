@@ -645,6 +645,7 @@ class VarExpr():
         if (self.type == None):
             for i in reversed(self.scope_stack):
                 for j in i.keys():
+                    print(self.scope_stack)
                     if self.idVar in j:
                         self.type = Type(j[0])
         return self.type

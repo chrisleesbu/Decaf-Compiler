@@ -173,7 +173,7 @@ def p_formal_param(p):
     curr_vars[p[2].name] = len(curr_var_ids) + 1
     curr_var_ids.add(len(curr_var_ids) + 1)
     global var_counter
-    scope_stack[-1][p[2].name] = var_counter
+    scope_stack[-1][(str(p[1]),p[2].name)] = var_counter
     var_counter += 1
     pass
 
