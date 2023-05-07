@@ -712,7 +712,6 @@ class BinaryExpr():
                 else:
                     print("Error: Binary type error (arithmetic operations)")
                     self.type = Type("error")
-                    
             elif (self.operator in ["&&", "||"]): #boolean operations
                 if (self.operand1.getType().type == "boolean" and self.operand2.getType().type == "boolean"):
                     self.type = Type("boolean")
@@ -753,10 +752,10 @@ class AssignExpr():
         return s
     
     def getType(self):
-        # print("left")
-        # print(self.leftExpr)
-        # print("right")
-        # print(self.rightExpr.getType())
+        print("left")
+        print(self.leftExpr)
+        print("right")
+        print(self.rightExpr.getType())
         if(self.type == None):
             if (self.leftExpr.getType().type != "error" and self.rightExpr.getType().type != "error"):
                 if (self.rightExpr.getType().isSubtype(self.leftExpr.getType())):
