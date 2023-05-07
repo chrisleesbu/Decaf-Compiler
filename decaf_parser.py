@@ -23,7 +23,7 @@ precedence = (('right', 'ASSIGN'),
               )
 
 new_scope_created = False
-
+classes = []
 def p_program(p):
     'program : class_decl_list'
     p[0] = Program(p[1])
@@ -44,17 +44,19 @@ def p_class_decl(p):
     if p[3] != "extends":
         a = Class(p[2], decls=p[5])
         p[0] = a
-        if p[0] in class_record.keys():
+        if p[0].name in class_record.keys():
             print(f"Error: Duplicate class name `{p[2]}` detected")
             exit(1)
         class_record[p[2]] = a
     else:
         b = Class(p[2], p[4], decls=p[7])
         p[0] = b
-        if p[0] in class_record.keys():
+        if p[0].name in class_record.keys():
             print(f"Error: Duplicate class name `{p[2]}` detected")
             exit(1)
         class_record[p[2]] = b
+        
+    classes.append(p[2])
     pass
 
 def p_class_body_decl_list(p):
@@ -421,18 +423,10 @@ def p_lhs(p):
 def p_field_access(p):
     '''field_access : primary DOT ID
                     | ID'''
-    #print(len(p))
     if (len(p) == 4): #primary DOT ID
         var = p[3]
         found = False
         p[0] = FieldAccessExpr(p[1], p[3], p.lineno, p.lineno)
-        # for i in reversed(scope_stack):
-        #     if var in i:
-        #         found = True
-        #         break
-        # if not found:
-        #     print(f"Error: Variable {var} cannot be found")
-        #     exit(1)
     else: #ID
         var = p[1]
         found = False
@@ -448,8 +442,10 @@ def p_field_access(p):
             
         else:
             p[0] = ClassReferenceExpr(p[1], p.lineno, p.lineno)
-            
+            return
+        
         if not found:
+            print(len(p))
             print(f"Error: Variable {var} cannot be found")
             exit(1)
             

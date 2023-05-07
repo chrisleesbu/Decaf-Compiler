@@ -46,7 +46,7 @@ def main():
     global result
     result = parser.parse(source, lexer = lexer, debug = 0)
     decaf_typecheck.type_check(result)
-    #print(result)
+    print(result)
     # Parsing Successful
     #print()
     #print("YES")

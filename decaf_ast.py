@@ -37,6 +37,26 @@ class ClassDeclList():
     def __init__(self, val, n):
         self.val = val
         self.next = n
+        
+        # class Out():
+        #     def print(expr):
+        #         pass
+    
+        # class In():
+        #     def scan_int():
+        #         pass
+            
+        #     def scan_float():
+        #         pass
+                
+        global class_record
+        out_decls = ClassBodyDeclList(ClassBodyDecl(Method(Modifier(first="public"), Type("void"), "print", Formal(Type("constant"), Variable("")), None)), None)
+       
+        scan_int = ClassBodyDecl(Method(Modifier(first="public"), Type("int"), "scan_int", None, None))
+        scan_float = ClassBodyDecl(Method(Modifier(first="public"), Type("float"), "scan_float", None, None))
+        in_decls = ClassBodyDeclList(scan_int, ClassBodyDeclList(scan_float, None))
+        class_record["In"] = Class("In", decls=in_decls)
+        class_record["Out"] = Class("Out", decls=out_decls)
     
     def __str__(self):
         s = ""
@@ -68,11 +88,14 @@ class Class():
             else:
                 self.methods.append(curr.curr.decl)
             curr = curr.next
+            
+        
         
     def __str__(self):
         s = f"--------------------------------------------------------------------------\nClass Name: {self.name}\n"
         s += f'Superclass Name: {self.super_class}\n' if self.super_class else f'Superclass Name:\n'
         s += 'Fields:\n'
+        field_declarations = {0}
         for fields in self.fields:
             a = fields.get_data()
             modifier = a[0].get_data()
@@ -85,18 +108,40 @@ class Class():
             
             curr = var_decls_list
             while curr:
+                if curr.current.name in field_declarations:
+                    print(f"Error: {curr.current.name} already declared")
+                    exit(1)
+                field_declarations.add(curr.current.name)
                 s += f'FIELD {len(field_ids)}, {curr.current.name}, {self.name}, {vis}, {modifier}, {type if type == "int" or type == "float" or type == "boolean" else f"user({type})"}\n'
                 field_ids.add(len(field_ids) + 1)
                 curr = curr.next
             
         s += "Constructors:\n"
         for constructor in self.constructors:
+            vars_declared = {0}
+            for i in self.block.var_decls:
+                curr = i.vars
+                while curr:
+                    if curr.current.name in field_declarations or curr.current.name in vars_declared:
+                        print(f"Error: {curr.current.name} already declared")
+                        exit(1)
+                    vars_declared.add(curr.current.name)
+                    curr = curr.next
             s += str(constructor)
             
         s += "Methods:\n"
             
         for method in self.methods:
             modifier = method.visibility if method.visibility else "private"
+            vars_declared = {0}
+            for i in self.body.var_decls:
+                curr = i.vars
+                while curr:
+                    if curr.current.name in field_declarations or curr.current.name in vars_declared:
+                        print(f"Error: {curr.current.name} already declared")
+                        exit(1)
+                    vars_declared.add(curr.current.name)
+                    curr = curr.next
             applicability = "static" if method.applicability else "instance"
             s += f'METHOD: {method.id}, {method.name}, {self.name}, {modifier}, {applicability}, {method.returnType}\n'
             s += str(method)
@@ -856,3 +901,5 @@ class ClassReferenceExpr():
             else:
                 self.type = Type(class_record[self.classRef], isLiteral=True)
         return self.type
+    
+
