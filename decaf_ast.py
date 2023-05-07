@@ -510,7 +510,7 @@ class ForStmt():
     
     def typeCheck(self): 
         if (self.typeCorrect == None):
-            if (self.loopExpr.getType().type != "boolean" or self.initializerExpr.typeCheck() == False or self.updateExpr.typeCheck() == False or self.stmt.typeCheck() == False):
+            if (self.loopExpr.getType().type != "boolean" or self.initializerExpr.getType().type == "error" or self.updateExpr.getType().type  == "error" or self.stmt.typeCheck() == False):
                 self.typeCorrect = False
             else:
                 self.typeCorrect = True
@@ -730,6 +730,8 @@ class BinaryExpr():
                     self.type = Type("error")
                     exit(1)
             elif (self.operator in [">", ">=", "<", "<="]): #arithmetic comparisons
+                print(self.operand1.getType().type)
+                print(self.operand2.getType().type)
                 if ((self.operand1.getType().type == "int" or self.operand1.getType().type == "float")
                     and (self.operand2.getType().type == "int" or self.operand2.getType().type == "float")):
                     self.type = Type('boolean')
@@ -818,14 +820,17 @@ class FieldAccessExpr():
         if (self.type == None):
             if(self.base.getType().category == "user" or self.base.getType().category == "classLiteral"):
                 if(self.base.getType().category == "user"):
-                    fieldResolve = self.fieldResolution(self.base.getType(), self.fieldName, "instance")
+                    if isinstance(self.base, ThisExpr):
+                        fieldResolve = self.fieldResolution(self.base.getType().type, self.fieldName, None) #it really should be instance
+                    else:
+                        fieldResolve = self.fieldResolution(class_record[self.base.getType().type], self.fieldName, None) #it really should be instance
                     if (fieldResolve == None):
                         self.type = Type("error")
                         print("Field resolve failed")
                     else:
                         self.type = fieldResolve.var_decl.type
                 else:
-                    fieldResolve = self.fieldResolution(self.base.getType(), self.fieldName, "static") 
+                    fieldResolve = self.fieldResolution(self.base.getType().type, self.fieldName, "static") 
                     if (fieldResolve == None):
                         self.type = Type("error")
                         print("Field resolve failed")
@@ -840,14 +845,13 @@ class FieldAccessExpr():
     def fieldResolution(self, fieldClass, fieldName, applicability):
         currentClass = fieldClass
         while (currentClass):
-            for field in currentClass.type.fields:
+            for field in currentClass.fields:
                 varsList = field.var_decl.vars.getList()
                 for var in varsList:
-                    if (var.name == fieldName): 
-                        #found field name
+                    if (var.name == fieldName):
                         if (field.modifier.first == "public" and field.modifier.second == applicability):
                             return field
-            currentClass = currentClass.type.super_class
+            currentClass = currentClass.super_class
         return None
 
 
@@ -872,20 +876,22 @@ class MethodCallExpr():
         return s  
     
     def getType(self):
+        # print("here")
+        # print(self.base)
         if (self.type == None):
             if isinstance(self.base, ClassReferenceExpr):
                 if (self.base.classRef == "Out" or self.base.classRef == "In"):
                     self.type = Type("builtin")
                     return self.type
             if (self.base.getType().category == "user"):
-                methodResolve = self.methodResolution(self.base.getType(), self.methodName, self.exprs, "instance") 
+                methodResolve = self.methodResolution(class_record[self.base.getType().type], self.methodName, self.exprs, None) 
                 if (methodResolve == None):
                     self.type = Type("error")
                     print("Method resolve failed")
                 else:
                     self.type = methodResolve.returnType
             elif (self.base.getType().category == "classLiteral"):
-                methodResolve = self.methodResolution(self.base.getType(), self.methodName, self.exprs, "static") 
+                methodResolve = self.methodResolution(self.base.getType().type, self.methodName, self.exprs, "static") 
                 if (methodResolve == None):
                     self.type = Type("error")
                     print("Method resolve failed")
@@ -899,9 +905,12 @@ class MethodCallExpr():
     def methodResolution(self, methodClass, methodName, methodParameters, applicability):
         #keep checking methods from base class to super class and if nothing is found return none
         currentClass = methodClass
-        while (currentClass):
-            for method in currentClass.type.methods:
-                parameterList = method.parameters.getList()
+        while (currentClass.methods):
+            for method in currentClass.methods:
+                if (method.parameters == None):
+                    parameterList = []
+                else:
+                    parameterList = method.parameters.getList()
                 if (method.name == methodName and len(parameterList) == len(methodParameters) and applicability == method.applicability):
                     for i in range(len(methodParameters)):
                         if not (methodParameters[i].getType().isSubtype(parameterList[i].type)):
@@ -909,7 +918,7 @@ class MethodCallExpr():
                     return method
                 else:
                     return None
-            currentClass = currentClass.type.super_class
+            currentClass = currentClass.super_class
         return None
     
 class NewObjectExpr(): #constructor
@@ -948,7 +957,10 @@ class NewObjectExpr(): #constructor
         currentClass = constructorClass
         while (currentClass):
             for constructor in currentClass.constructors:
-                parameterList = constructor.formals.getList()
+                if (constructor.formals == None):
+                    parameterList = []
+                else:
+                    parameterList = constructor.formals.getList()
                 if (constructor.name == self.baseClassName and len(parameterList) == len(constructorParameters)):
                     for i in range(len(constructorParameters)):
                         if not (constructorParameters[i].getType().isSubtype(parameterList[i].type)):
@@ -956,13 +968,11 @@ class NewObjectExpr(): #constructor
                     return constructor
                 else:
                     return None
-            currentClass = currentClass.type.super_class
+            currentClass = currentClass.super_class
         return None
     
 
 class ThisExpr():
-    global curr
-
     def __init__(self, lineStart, lineEnd) -> None:
         self.lineStart = lineStart
         self.lineEnd = lineEnd  
@@ -973,14 +983,12 @@ class ThisExpr():
     
     def getType(self):
         if(self.type == None):
-            # print(curr)
             self.type = Type(decaf_typecheck.curr)
+            print(self.type)
         return self.type
 
 
 class SuperExpr():
-    global curr
-
     def __init__(self, lineStart, lineEnd) -> None:
         self.lineStart = lineStart
         self.lineEnd = lineEnd
@@ -991,11 +999,11 @@ class SuperExpr():
     
     def getType(self):
         if(self.type == None):
-            if (curr.super_class == None):
+            if (decaf_typecheck.curr.super_class == None):
                 self.type = Type("error")
                 print("Super type error (no superclass)")
             else:
-                self.type = Type(curr.super_class)
+                self.type = Type(decaf_typecheck.curr.super_class)
         return self.type
 
 class ClassReferenceExpr():
