@@ -21,7 +21,7 @@ def type_check(program):
             return_type = method.returnType
             for stmt in method.body.stmts:
                 if not isinstance(stmt, ast.VarDecl):
-                    #print(stmt.typeCheck())
+                    print(stmt.typeCheck())
                     print("", end="")
         # for constructor in curr.constructors:
         #     for stmt in constructor.body.stmts:

@@ -811,7 +811,7 @@ class FieldAccessExpr():
         if (self.type == None):
             if(self.base.getType().category == "user" or self.base.getType().category == "classLiteral"):
                 if(self.base.getType().category == "user"):
-                    if isinstance(self.base, ThisExpr):
+                    if isinstance(self.base, ThisExpr) or isinstance(self.base, SuperExpr):
                         fieldResolve = self.fieldResolution(self.base.getType().type, self.fieldName, None) #it really should be instance
                     else:
                         fieldResolve = self.fieldResolution(class_record[self.base.getType().type], self.fieldName, None) #it really should be instance
@@ -875,7 +875,10 @@ class MethodCallExpr():
                     self.type = Type("builtin")
                     return self.type
             if (self.base.getType().category == "user"):
-                methodResolve = self.methodResolution(class_record[self.base.getType().type], self.methodName, self.exprs, None) 
+                if isinstance(self.base, ThisExpr) or isinstance(self.base, SuperExpr):
+                    methodResolve = self.methodResolution(self.base.getType().type, self.methodName, self.exprs, None) 
+                else:
+                    methodResolve = self.methodResolution(class_record[self.base.getType().type], self.methodName, self.exprs, None) 
                 if (methodResolve == None):
                     self.type = Type("error")
                     print("Method resolve failed")
