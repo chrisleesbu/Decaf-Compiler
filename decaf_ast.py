@@ -38,17 +38,6 @@ class ClassDeclList():
     def __init__(self, val, n):
         self.val = val
         self.next = n
-        
-        # class Out():
-        #     def print(expr):
-        #         pass
-    
-        # class In():
-        #     def scan_int():
-        #         pass
-            
-        #     def scan_float():
-        #         pass
                 
         global class_record
         out_decls = ClassBodyDeclList(ClassBodyDecl(Method(Modifier(first="public"), Type("void"), "print", Formal(Type("constant"), Variable("")), None)), None)
@@ -139,18 +128,20 @@ class Class():
             s += str(constructor)
             
         s += "Methods:\n"
-            
+        
         for method in self.methods:
             modifier = method.visibility if method.visibility else "private"
             formals_declared = {0}
             vars_declared = {0}
             curr = method.parameters
+            
             while curr:
                 if curr.current.variable.name in formals_declared:
                     print(f"Error: {curr.current.variable.name} already declared")
                     exit(1)
                 formals_declared.add(curr.current.variable.name)
                 curr = curr.next
+            
             for i in method.body.var_decls:
                 curr = i.vars
                 while curr:
@@ -310,6 +301,7 @@ class Constructor():
         
         index = 0
         for i in self.block.var_decls:
+            print(i)
             curr = i.vars
             length = 0
             var_table.append([i.type])
@@ -681,15 +673,14 @@ class UnaryExpr():
                 else:
                     print("Error: Unary type error")
                     self.type = Type("error")
-            elif(self.unary == "-"): 
-                if (self.unary == '-'):
-                    if (self.operand.getType().type == "int"):
-                        self.type = Type("int")
-                    elif (self.operand.getType().type == "float"):
-                        self.type = Type("float")
-                    else:
-                      print("Error: Unary type error")  
-                      self.type = Type("error")
+            elif(self.unary == "-" or self.unary =="+"): 
+                if (self.operand.getType().type == "int"):
+                    self.type = Type("int")
+                elif (self.operand.getType().type == "float"):
+                    self.type = Type("float")
+                else:
+                    print("Error: Unary type error")  
+                    self.type = Type("error")
         return self.type
     
 class BinaryExpr():
@@ -983,7 +974,7 @@ class ThisExpr():
     
     def getType(self):
         if(self.type == None):
-            self.type = Type(decaf_typecheck.curr)
+            self.type = Type(decaf_typecheck.curr_ast)
             print(self.type)
         return self.type
 
@@ -999,11 +990,11 @@ class SuperExpr():
     
     def getType(self):
         if(self.type == None):
-            if (decaf_typecheck.curr.super_class == None):
+            if (decaf_typecheck.curr_ast.super_class == None):
                 self.type = Type("error")
                 print("Super type error (no superclass)")
             else:
-                self.type = Type(decaf_typecheck.curr.super_class)
+                self.type = Type(decaf_typecheck.curr_ast.super_class)
         return self.type
 
 class ClassReferenceExpr():
