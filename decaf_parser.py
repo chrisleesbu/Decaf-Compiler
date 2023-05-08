@@ -425,10 +425,12 @@ def p_lhs(p):
 def p_field_access(p):
     '''field_access : primary DOT ID
                     | ID'''
+    
     if (len(p) == 4): #primary DOT ID
         var = p[3]
         found = False
         p[0] = FieldAccessExpr(p[1], p[3], p.lineno, p.lineno)
+        field_accesses.append(p[0])
     else: #ID
         var = p[1]
         found = False

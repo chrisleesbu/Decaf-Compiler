@@ -24,6 +24,8 @@ curr_var_ids = set()
 scope_stack = []
 var_counter = 1
 
+field_accesses = []
+
 class Program():
     def __init__(self, class_list):
         self.class_list = class_list 
@@ -723,8 +725,6 @@ class BinaryExpr():
                     self.type = Type("error")
                     exit(1)
             elif (self.operator in [">", ">=", "<", "<="]): #arithmetic comparisons
-                print(self.operand1.getType().type)
-                print(self.operand2.getType().type)
                 if ((self.operand1.getType().type == "int" or self.operand1.getType().type == "float")
                     and (self.operand2.getType().type == "int" or self.operand2.getType().type == "float")):
                     self.type = Type('boolean')
@@ -800,8 +800,17 @@ class FieldAccessExpr():
         self.lineEnd = lineEnd
         self.type = None
 
-    def __str__(self):
+    def old_str(self):
         s = "Field-access(" + str(self.base) + ", " + str(self.fieldName) + ")"
+        return s
+
+    def __str__(self):
+        s = ""
+        for i,x in enumerate(field_accesses):
+            curr_str = f"Field-access({x.base}, {x.fieldName})"
+            if curr_str == self.old_str():
+                s = "Field-access(" + str(self.base) + ", " + str(self.fieldName) + ", " + str(i+1) + ")"
+                break
         return s
     
     def getType(self):
@@ -843,7 +852,7 @@ class FieldAccessExpr():
                 for var in varsList:
                     if (var.name == fieldName):
                         #field.modifier.first == None 
-                        if (field.modifier.first == "public" and field.modifier.second == applicability):
+                        if ((field.modifier.first == "public" or currentClass == decaf_typecheck.curr_ast) and field.modifier.second == applicability):
                             return field
             currentClass = currentClass.super_class
         return None
