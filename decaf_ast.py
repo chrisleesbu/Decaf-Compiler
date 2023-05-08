@@ -751,7 +751,7 @@ class AssignExpr():
         self.type = None
 
     def __str__(self):
-        s = "Assign(" + str(self.leftExpr) + ", " + str(self.rightExpr) + ")"
+        s = "Assign(" + str(self.leftExpr) + ", " + str(self.rightExpr) + ", " + str(self.leftExpr.getType().type) + ", " + str(self.rightExpr.getType().type) + ")"
         return s
     
     def getType(self):
