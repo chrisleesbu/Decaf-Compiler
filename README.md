@@ -15,3 +15,7 @@ Responsible for parsing the input file based on the grammar rules. This is to en
 ## decaf_ast.py
 
 Creates the abstract syntax tree and prints out for the user. This is the internal representation of the program.
+
+## decaf_typecheck.py
+
+Responsible for validating the AST by ensuring that types match 
