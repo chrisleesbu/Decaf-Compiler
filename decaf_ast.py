@@ -645,7 +645,6 @@ class VarExpr():
         if (self.type == None):
             for i in reversed(self.scope_stack):
                 for j in i.keys():
-                    print(self.scope_stack)
                     if self.idVar in j:
                         self.type = Type(j[0])
         return self.type
@@ -674,6 +673,7 @@ class UnaryExpr():
                 else:
                     print("Error: Unary type error")
                     self.type = Type("error")
+                    exit(1)
             elif(self.unary == "-" or self.unary =="+"): 
                 if (self.operand.getType().type == "int"):
                     self.type = Type("int")
@@ -682,6 +682,7 @@ class UnaryExpr():
                 else:
                     print("Error: Unary type error")  
                     self.type = Type("error")
+                    exit(1)
         return self.type
     
 class BinaryExpr():
@@ -713,6 +714,7 @@ class BinaryExpr():
                 else:
                     print("Error: Binary type error (arithmetic operations)")
                     self.type = Type("error")
+                    exit(1)
             elif (self.operator in ["&&", "||"]): #boolean operations
                 if (self.operand1.getType().type == "boolean" and self.operand2.getType().type == "boolean"):
                     self.type = Type("boolean")
@@ -753,10 +755,6 @@ class AssignExpr():
         return s
     
     def getType(self):
-        print("left")
-        print(self.leftExpr)
-        print("right")
-        print(self.rightExpr.getType())
         if(self.type == None):
             if (self.leftExpr.getType().type != "error" and self.rightExpr.getType().type != "error"):
                 if (self.rightExpr.getType().isSubtype(self.leftExpr.getType())):
@@ -791,6 +789,7 @@ class AutoExpr():
             else:
                 print("Auto type error")
                 self.type = Type("error")
+                exit(1)
         return self.type
     
 class FieldAccessExpr():
@@ -818,6 +817,7 @@ class FieldAccessExpr():
                     if (fieldResolve == None):
                         self.type = Type("error")
                         print("Field resolve failed")
+                        exit(1)
                     else:
                         self.type = fieldResolve.var_decl.type
                 else:
@@ -825,12 +825,14 @@ class FieldAccessExpr():
                     if (fieldResolve == None):
                         self.type = Type("error")
                         print("Field resolve failed")
+                        exit(1)
                     else:
                         self.type = fieldResolve.var_decl.type
                     pass
             else:
                 print("Field access type error")
                 self.type = Type("error")
+                exit(1)
         return self.type
 
     def fieldResolution(self, fieldClass, fieldName, applicability):
@@ -840,6 +842,7 @@ class FieldAccessExpr():
                 varsList = field.var_decl.vars.getList()
                 for var in varsList:
                     if (var.name == fieldName):
+                        #field.modifier.first == None 
                         if (field.modifier.first == "public" and field.modifier.second == applicability):
                             return field
             currentClass = currentClass.super_class
@@ -867,8 +870,6 @@ class MethodCallExpr():
         return s  
     
     def getType(self):
-        # print("here")
-        # print(self.base)
         if (self.type == None):
             if isinstance(self.base, ClassReferenceExpr):
                 if (self.base.classRef == "Out" or self.base.classRef == "In"):
@@ -882,6 +883,7 @@ class MethodCallExpr():
                 if (methodResolve == None):
                     self.type = Type("error")
                     print("Method resolve failed")
+                    exit(1)
                 else:
                     self.type = methodResolve.returnType
             elif (self.base.getType().category == "classLiteral"):
@@ -889,11 +891,13 @@ class MethodCallExpr():
                 if (methodResolve == None):
                     self.type = Type("error")
                     print("Method resolve failed")
+                    exit(1)
                 else:
                     self.type = methodResolve.returnType
             else:
                 self.type = Type("error")
                 print("Method call type error")
+                exit(1)
         return self.type
 
     def methodResolution(self, methodClass, methodName, methodParameters, applicability):
@@ -942,6 +946,7 @@ class NewObjectExpr(): #constructor
             if (constructorResolve == None):
                 self.type = Type("error")
                 print("New object expr type error")
+                exit(1)
             else: 
                 self.type = Type(self.baseClassName)
         return self.type
@@ -978,7 +983,6 @@ class ThisExpr():
     def getType(self):
         if(self.type == None):
             self.type = Type(decaf_typecheck.curr_ast)
-            print(self.type)
         return self.type
 
 
@@ -996,6 +1000,7 @@ class SuperExpr():
             if (decaf_typecheck.curr_ast.super_class == None):
                 self.type = Type("error")
                 print("Super type error (no superclass)")
+                exit(1)
             else:
                 self.type = Type(decaf_typecheck.curr_ast.super_class)
         return self.type
@@ -1018,6 +1023,7 @@ class ClassReferenceExpr():
             if (self.classRef not in class_record.keys()):
                 self.type = Type("error")
                 print("Class reference does not exist")
+                exit(1)
             else:
                 self.type = Type(class_record[self.classRef], isLiteral=True)
         return self.type
